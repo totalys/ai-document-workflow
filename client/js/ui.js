@@ -190,7 +190,6 @@ export function updateKPIs(workflows) {
  * @param {string} opts.companyId
  * @param {string} opts.documentId
  * @param {string} opts.typeId
- * @param {string} opts.timestampId
  * @param {string} opts.scoreId
  * @param {string} opts.scoreGroupId
  * @param {string} opts.submitBtnId
@@ -202,14 +201,11 @@ function setupEventForm(opts) {
   const form = document.getElementById(opts.formId);
   const typeSelect = document.getElementById(opts.typeId);
   const scoreGroup = document.getElementById(opts.scoreGroupId);
-  const timestampInput = document.getElementById(opts.timestampId);
   const submitBtn = document.getElementById(opts.submitBtnId);
   const spinner = document.getElementById(opts.spinnerId);
   const responseArea = document.getElementById(opts.responseId);
 
-  if (!form || !typeSelect || !scoreGroup || !timestampInput || !submitBtn || !spinner) return;
-
-  prefillTimestamp(timestampInput);
+  if (!form || !typeSelect || !scoreGroup || !submitBtn || !spinner) return;
 
   typeSelect.addEventListener("change", () => {
     scoreGroup.style.display = typeSelect.value === "SCORING_COMPLETED" ? "block" : "none";
@@ -221,10 +217,9 @@ function setupEventForm(opts) {
     const companyId = document.getElementById(opts.companyId).value.trim();
     const documentId = document.getElementById(opts.documentId).value.trim();
     const eventType = typeSelect.value;
-    const timestamp = timestampInput.value;
     const scoreInput = document.getElementById(opts.scoreId);
 
-    if (!companyId || !documentId || !eventType || !timestamp) {
+    if (!companyId || !documentId || !eventType) {
       showToast("Please fill in all required fields.", "error");
       return;
     }
@@ -233,7 +228,7 @@ function setupEventForm(opts) {
       company_id: companyId,
       document_id: documentId,
       type: eventType,
-      timestamp: new Date(timestamp).toISOString(),
+      timestamp: new Date().toISOString(),
     };
 
     if (eventType === "SCORING_COMPLETED" && scoreInput && scoreInput.value) {
@@ -252,8 +247,6 @@ function setupEventForm(opts) {
       if (responseArea) {
         showEventResponse(responseArea, workflow, true);
       }
-
-      prefillTimestamp(timestampInput);
 
       // Close modal if applicable
       if (opts.modalId) {
@@ -341,7 +334,6 @@ export function initEventForm() {
     companyId: "event-company",
     documentId: "event-document",
     typeId: "event-type",
-    timestampId: "event-timestamp",
     scoreId: "event-score",
     scoreGroupId: "score-group",
     submitBtnId: "submit-event-btn",
@@ -359,7 +351,6 @@ export function initModalForm() {
     companyId: "modal-event-company",
     documentId: "modal-event-document",
     typeId: "modal-event-type",
-    timestampId: "modal-event-timestamp",
     scoreId: "modal-event-score",
     scoreGroupId: "modal-score-group",
     submitBtnId: "modal-submit-btn",
