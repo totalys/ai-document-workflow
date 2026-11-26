@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 
 from app.models import DocumentWorkflow, WorkflowEvent
-from app.state import (
+from app.service.workflow_service import (
     apply_event,
     get_workflow,
     list_workflows,

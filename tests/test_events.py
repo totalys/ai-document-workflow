@@ -4,13 +4,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.state import clear_store
+from app.repository import workflow_repository
 
 
 @pytest.fixture(autouse=True)
 def _reset_store() -> None:  # type: ignore[misc]
     """Clear the in-memory store before each test."""
-    clear_store()
+    workflow_repository.clear()
 
 
 client = TestClient(app)
