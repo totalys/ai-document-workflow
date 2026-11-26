@@ -10,6 +10,7 @@ import {
   initWorkflowsTable,
   loadWorkflows,
   populateEventTypeSelect,
+  clearToasts,
 } from "./ui.js";
 import { initDemo } from "./demo.js";
 
@@ -53,6 +54,9 @@ function showSection(sectionId) {
   if (titleEl) {
     titleEl.textContent = SECTION_TITLES[sectionId] || "Dashboard";
   }
+
+  // Dismiss any lingering toasts from the previous section
+  clearToasts();
 
   // Close mobile sidebar if open
   closeMobileSidebar();

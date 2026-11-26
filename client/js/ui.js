@@ -96,14 +96,21 @@ export function showToast(message, type = "success") {
 
   container.appendChild(toast);
 
-  // Auto-dismiss success toasts after 5s
-  if (type === "success") {
-    setTimeout(() => {
-      if (toast.parentNode) {
-        toast.classList.add("toast-exit");
-        setTimeout(() => toast.remove(), 300);
-      }
-    }, 5000);
+  const delay = type === "success" ? 5000 : 10000;
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.classList.add("toast-exit");
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, delay);
+}
+
+export function clearToasts() {
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+  for (const toast of Array.from(container.children)) {
+    toast.classList.add("toast-exit");
+    setTimeout(() => toast.remove(), 300);
   }
 }
 
