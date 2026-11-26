@@ -56,14 +56,20 @@ def post_event(event: WorkflowEvent) -> DocumentWorkflow:
 
 
 @app.get("/workflows", response_model=list[DocumentWorkflow])
-def get_workflows() -> list[DocumentWorkflow]:
-    """Return the current state of all tracked document workflows.
+def get_workflows(company_id: str | None = None) -> list[DocumentWorkflow]:
+    """Return the current state of tracked document workflows.
+
+    Args:
+        company_id: Optional filter. When provided, only workflows belonging
+            to that company are returned. When omitted, all workflows across
+            all companies are returned.
 
     Returns:
-        A list of ``DocumentWorkflow`` objects, one per document that has
-        received at least one event. Returns an empty list when no events
-        have been processed yet.
+        A list of ``DocumentWorkflow`` objects matching the filter.
+        Returns an empty list when no matching workflows exist.
     """
+    if company_id is not None:
+        return list_workflows_by_company(company_id)
     return list_workflows()
 
 

@@ -86,6 +86,41 @@ class TestGetWorkflows:
         assert data[0]["score"] == 0.88
 
 
+class TestGetWorkflowsCompanyFilter:
+    """Tests for GET /workflows?company_id=<id>."""
+
+    def test_filters_by_company(self) -> None:
+        client.post("/events", json=_make_event("DOCUMENT_UPLOADED", company_id="acme"))
+        client.post(
+            "/events",
+            json=_make_event(
+                "DOCUMENT_UPLOADED", document_id="doc-2", company_id="globex"
+            ),
+        )
+        resp = client.get("/workflows", params={"company_id": "acme"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["company_id"] == "acme"
+
+    def test_unknown_company_returns_empty_list(self) -> None:
+        resp = client.get("/workflows", params={"company_id": "unknown"})
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    def test_no_filter_returns_all(self) -> None:
+        client.post("/events", json=_make_event("DOCUMENT_UPLOADED", company_id="acme"))
+        client.post(
+            "/events",
+            json=_make_event(
+                "DOCUMENT_UPLOADED", document_id="doc-2", company_id="globex"
+            ),
+        )
+        resp = client.get("/workflows")
+        assert resp.status_code == 200
+        assert len(resp.json()) == 2
+
+
 class TestGetWorkflowsByCompany:
     """Tests for GET /workflows/{company_id}."""
 
