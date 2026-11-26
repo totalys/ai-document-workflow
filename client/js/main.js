@@ -112,6 +112,21 @@ function initNavigation() {
   if (overlay) {
     overlay.addEventListener("click", closeMobileSidebar);
   }
+
+  // "New Event" button — navigate to Send Event section and reset form
+  const newEventBtn = document.getElementById("new-event-btn");
+  if (newEventBtn) {
+    newEventBtn.addEventListener("click", () => {
+      showSection("section-send-event");
+      const form = document.getElementById("event-form");
+      if (form) form.reset();
+      const scoreGroup = document.getElementById("score-group");
+      if (scoreGroup) scoreGroup.style.display = "none";
+      const responseArea = document.getElementById("event-response");
+      if (responseArea) responseArea.innerHTML = "";
+      document.getElementById("event-company")?.focus();
+    });
+  }
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
