@@ -12,6 +12,7 @@ Companies upload intellectual property documents that move through a scoring pip
 - [Getting Started](#getting-started)
 - [Project Structure](#project-structure)
 - [Design Decisions and Trade-offs](#design-decisions-and-trade-offs)
+- [Deployment](#deployment)
 - [Future Improvements](#future-improvements)
 
 ---
@@ -259,6 +260,87 @@ tests/
 **`DOCUMENT_UPLOADED` starts a new document:** Sending `DOCUMENT_UPLOADED` for an existing document is treated as an error rather than a re-upload, keeping the history append-only.
 
 **`score` propagation:** The score is captured when `SCORING_COMPLETED` is received and carried forward in `DocumentWorkflow.score` for quick access, without discarding the original event.
+
+---
+
+## Deployment
+
+The project is deployed on [Railway](https://railway.app) as a single service that serves both the API and the web client from the same origin.
+
+### Architecture
+
+```
+GitHub (main branch)
+        │
+        │  push
+        ▼
+  Railway CI/CD
+        │
+        │  nixpacks build
+        ▼
+  Python 3.12 container
+        │
+        │  Procfile start command
+        ▼
+  uvicorn app.main:app
+        │
+        ├──  /events, /workflows, /health  →  FastAPI routes
+        └──  /*                            →  StaticFiles (client/)
+```
+
+API and frontend run in the same process on the same port. No CORS configuration is required.
+
+### Files
+
+| File | Purpose |
+|---|---|
+| `Procfile` | Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| `requirements.txt` | Production dependencies exported from `uv` (used by Nixpacks) |
+| `app/main.py` | Mounts `client/` as `StaticFiles` at `/` after all API routes |
+
+### Continuous Deployment
+
+Railway is connected to the GitHub repository via the Railway GitHub App. Every push to the `main` branch triggers an automatic deploy:
+
+```
+git push origin main
+        │
+        ▼
+  GitHub webhook  →  Railway detects new commit
+        │
+        ▼
+  Nixpacks build
+    - detects requirements.txt + pyproject.toml
+    - installs Python 3.12
+    - pip install -r requirements.txt
+        │
+        ▼
+  Container starts
+    - Procfile: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    - Railway injects $PORT automatically
+        │
+        ▼
+  Zero-downtime swap  →  new container goes live
+```
+
+No manual steps are required after merging to `main`. Railway keeps the previous deployment available as a rollback target in the dashboard.
+
+### Environment Variables
+
+| Variable | Set by | Description |
+|---|---|---|
+| `PORT` | Railway (automatic) | Port uvicorn binds to |
+
+No application secrets are required for the current in-memory configuration.
+
+### Local vs Production
+
+| Aspect | Local | Railway |
+|---|---|---|
+| Start command | `uv run uvicorn app.main:app --reload` | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| Port | 8000 | Assigned by Railway (typically 8080) |
+| Hot reload | Yes (`--reload`) | No |
+| Storage | In-memory, reset on restart | In-memory, reset on each deploy |
 
 ---
 
