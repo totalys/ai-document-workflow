@@ -3,7 +3,6 @@
 from app.models import DocumentWorkflow, WorkflowEvent
 from app.transitions import TransitionError, validate_transition
 
-# In-memory store keyed by (company_id, document_id).
 _workflows: dict[tuple[str, str], DocumentWorkflow] = {}
 
 
@@ -33,22 +32,27 @@ def get_workflow(company_id: str, document_id: str) -> DocumentWorkflow | None:
 
 
 def apply_event(event: WorkflowEvent) -> DocumentWorkflow:
-    """Validate a workflow event and apply it to the in-memory store.
+    """Apply a workflow event to the store and return the updated document workflow.
+
+    Validates the event against the state machine rules and rejects duplicates.
+    On success, appends the event to the document's history and updates its status.
+    The score field is updated whenever a SCORING_COMPLETED event is received.
 
     Args:
-        event: The incoming workflow event.
+        event: The incoming workflow event to apply.
 
     Returns:
-        The updated DocumentWorkflow.
+        The updated DocumentWorkflow reflecting the new status and history.
 
     Raises:
-        TransitionError: If the transition or event is invalid.
+        TransitionError: If the event type is not allowed from the document's
+            current status, if the document does not exist yet, or if the same
+            event type has already been recorded for this document.
     """
     key = (event.company_id, event.document_id)
     existing = _workflows.get(key)
     current_status = existing.status if existing else None
 
-    # Check for duplicate events (same company+document+type already in history).
     if existing:
         for past_event in existing.history:
             if past_event.type == event.type:
@@ -59,7 +63,6 @@ def apply_event(event: WorkflowEvent) -> DocumentWorkflow:
 
     next_status = validate_transition(event.type, current_status)
 
-    # Capture score from SCORING_COMPLETED events.
     score = existing.score if existing else None
     if event.type == "SCORING_COMPLETED":
         score = event.score

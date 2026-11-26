@@ -2,8 +2,6 @@
 
 from app.models import WorkflowEventType, WorkflowStatus
 
-# Maps each event type to (required_current_statuses, resulting_status).
-# An empty tuple for required statuses means "allowed from any state".
 TRANSITION_MAP: dict[
     WorkflowEventType, tuple[tuple[WorkflowStatus, ...], WorkflowStatus]
 ] = {
@@ -29,21 +27,26 @@ def validate_transition(
     event_type: WorkflowEventType,
     current_status: WorkflowStatus | None,
 ) -> WorkflowStatus:
-    """Validate and return the next status for a given event.
+    """Return the resulting status for an event, or raise if the transition is invalid.
+
+    Enforces the state machine rules declared in TRANSITION_MAP. Callers should
+    catch TransitionError and surface it as an HTTP 422 response.
 
     Args:
-        event_type: The incoming event type.
-        current_status: The document's current status, or None if new.
+        event_type: The event being applied to the document.
+        current_status: The document's current status, or None if the document
+            does not yet exist in the store.
 
     Returns:
-        The resulting WorkflowStatus after the transition.
+        The WorkflowStatus the document will transition to.
 
     Raises:
-        TransitionError: If the transition is not allowed.
+        TransitionError: If the event is not allowed from the current status,
+            if the document does not exist when required, or if
+            DOCUMENT_UPLOADED is sent for an already-existing document.
     """
     required_statuses, next_status = TRANSITION_MAP[event_type]
 
-    # DOCUMENT_UPLOADED is the initial event — document must not exist yet.
     if event_type == "DOCUMENT_UPLOADED":
         if current_status is not None:
             raise TransitionError(
@@ -52,18 +55,15 @@ def validate_transition(
             )
         return next_status
 
-    # All other events require the document to exist.
     if current_status is None:
         raise TransitionError(
             f"Document does not exist. Cannot process '{event_type}' "
             "without a prior DOCUMENT_UPLOADED event."
         )
 
-    # FAILED is allowed from any state.
     if event_type == "FAILED":
         return next_status
 
-    # Normal transition — current status must be in the required set.
     if current_status not in required_statuses:
         expected = " or ".join(f"'{s}'" for s in required_statuses)
         raise TransitionError(

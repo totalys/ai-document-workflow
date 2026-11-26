@@ -85,6 +85,12 @@ The orchestrator will:
 
 Skip the full workflow — apply directly with the `coder` agent or inline.
 
+## Code style conventions
+
+- **No inline comments.** Code must be readable without them. Inline comments are allowed only when explaining a non-obvious external constraint (e.g. a known library bug, a regulatory requirement, or a deliberately counter-intuitive value).
+- **Docstrings on every public function, method, and class.** Use Google-style docstrings (`Args:`, `Returns:`, `Raises:`). Docstrings must describe intent and contract from the caller's perspective — not restate what the code does line by line.
+- **Private/internal helpers** (`_` prefix) do not require docstrings unless their contract is non-obvious.
+
 ## Lint and test rules for agents
 
 - **coder**: after every change run `uv run ruff check --fix . && uv run ruff format . && uv run pytest`; fix anything that breaks before writing the report.
