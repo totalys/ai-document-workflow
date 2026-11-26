@@ -13,7 +13,7 @@ Companies upload intellectual property documents that move through a scoring pip
 - [Project Structure](#project-structure)
 - [Design Decisions and Trade-offs](#design-decisions-and-trade-offs)
 - [Deployment](#deployment)
-- [Future Improvements](#future-improvements)
+- [Architecture Evolution Considerations](#architecture-evolution-considerations)
 
 ---
 
@@ -375,15 +375,34 @@ No application secrets are required for the current in-memory configuration.
 
 ---
 
-## Future Improvements
+## Architecture Evolution Considerations
+
+### This repository as a demo
+
+The current setup — API and demo client bundled in a single service — is intentional. This repository serves as a **presentation and exploration tool**: it lets stakeholders interact with the full workflow state machine without any external setup.
+
+The demo client (`client/`) is part of the deliverable because it makes the API self-documenting and immediately usable in a live session.
+
+### Production API — separate structure
+
+In a real production deployment the demo client would be removed from the API codebase. The production API would run as a standalone service consumed by the actual platform, with the demo site living in a separate deploy:
+
+| Component | Location | Purpose |
+|---|---|---|
+| Production API | Railway (this service, without `client/`) | Consumed by the IP marketplace backend, mobile apps, and partner integrations |
+| Demo site | Vercel / CDN | Stakeholder presentations; calls the production API via environment variable |
+
+The demo site would be configured to call the production API URL via an environment variable. The codebase already anticipates this: `api.js` uses relative paths that can be replaced with an absolute base URL with a single change.
+
+### Other improvements for production readiness
 
 | Area | Description |
 |---|---|
 | **Persistence** | Replace in-memory dict with PostgreSQL (SQLAlchemy + Alembic) for durability and horizontal scaling |
-| **Idempotency keys** | Accept a client-supplied `event_id` and use it for true at-least-once delivery deduplication |
-| **Background workers** | Offload AI scoring to a task queue (Celery / ARQ) and push progress events back via webhooks or SSE |
-| **Authentication** | Add JWT/API-key middleware; scope `GET /workflows` to `company_id` |
-| **Pagination** | Add cursor-based pagination to `GET /workflows` for large datasets |
-| **Frontend** | Real-time status board using Server-Sent Events or WebSockets |
+| **Idempotency keys** | Accept a client-supplied `event_id` for true at-least-once delivery deduplication |
+| **Background workers** | Offload AI scoring to a task queue (Celery / ARQ); push progress via webhooks or SSE |
+| **Authentication** | JWT/API-key middleware; scope `GET /workflows` to `company_id` |
+| **Pagination** | Cursor-based pagination on `GET /workflows` for large datasets |
+| **Real-time updates** | Server-Sent Events or WebSockets for live status board |
 | **Retries** | Configurable retry policy on `FAILED` documents with back-off |
-| **AI scoring evaluation** | Hook `SCORING_COMPLETED` to an LLM-based evaluation step before the score is accepted |
+| **AI scoring evaluation** | Hook `SCORING_COMPLETED` to an LLM evaluation step before accepting the score |
