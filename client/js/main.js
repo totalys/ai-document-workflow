@@ -64,8 +64,11 @@ function showSection(sectionId) {
 function openMobileSidebar() {
   const sidebar = document.getElementById("sidebar");
   const overlay = document.getElementById("sidebar-overlay");
+  const hamburgerBtn = document.getElementById("hamburger-btn");
   if (sidebar) sidebar.classList.add("open");
   if (overlay) overlay.classList.add("show");
+  if (hamburgerBtn) hamburgerBtn.setAttribute("aria-expanded", "true");
+  document.body.classList.add("sidebar-open");
 }
 
 /**
@@ -74,8 +77,11 @@ function openMobileSidebar() {
 function closeMobileSidebar() {
   const sidebar = document.getElementById("sidebar");
   const overlay = document.getElementById("sidebar-overlay");
+  const hamburgerBtn = document.getElementById("hamburger-btn");
   if (sidebar) sidebar.classList.remove("open");
   if (overlay) overlay.classList.remove("show");
+  if (hamburgerBtn) hamburgerBtn.setAttribute("aria-expanded", "false");
+  document.body.classList.remove("sidebar-open");
 }
 
 /**
@@ -127,6 +133,20 @@ function initNavigation() {
       document.getElementById("event-company")?.focus();
     });
   }
+
+  // ESC key closes the sidebar
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeMobileSidebar();
+  });
+
+  // Swipe-left to close the sidebar
+  let touchStartX = 0;
+  document.addEventListener("touchstart", (e) => {
+    touchStartX = e.touches[0].clientX;
+  }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (e.changedTouches[0].clientX - touchStartX < -50) closeMobileSidebar();
+  }, { passive: true });
 }
 
 document.addEventListener("DOMContentLoaded", async () => {

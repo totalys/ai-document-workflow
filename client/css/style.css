@@ -45,6 +45,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+body.sidebar-open {
+  overflow: hidden;
+}
+
 /* ── Sidebar ────────────────────────────────────────────────────── */
 .sidebar {
   position: fixed;
@@ -57,6 +61,7 @@ body {
   flex-direction: column;
   z-index: 1000;
   overflow-y: auto;
+  transition: transform .3s cubic-bezier(.4, 0, .2, 1);
 }
 
 .sidebar-logo {
@@ -987,7 +992,6 @@ body {
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
-    transition: transform .3s ease;
   }
 
   .sidebar.open {
@@ -1002,18 +1006,66 @@ body {
     display: flex;
   }
 
-  .kpi-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .page-content {
-    padding: 16px;
-  }
-
+  /* Top bar */
   .top-bar {
     padding: 12px 16px;
   }
 
+  .top-bar-title {
+    font-size: 1rem;
+  }
+
+  /* New Event button: icon only on mobile */
+  .btn-accent .btn-label {
+    display: none;
+  }
+
+  /* Send Event section: full width */
+  .send-event-wrapper {
+    max-width: 100%;
+  }
+
+  /* Card headers with controls: stack vertically */
+  .card-header-custom .d-flex.justify-content-between {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+
+  /* Search input: full width */
+  .search-input {
+    width: 100% !important;
+  }
+
+  .search-input-wrapper {
+    flex: 1;
+  }
+
+  /* KPI: 2 columns */
+  .kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Page content */
+  .page-content {
+    padding: 16px 12px;
+  }
+
+  /* Table: horizontal scroll */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Toast: full width, sticks to bottom */
+  .toast-container-custom {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    max-width: 100%;
+  }
+
+  /* State diagram */
   .state-flow-main {
     flex-direction: column;
   }
@@ -1034,9 +1086,10 @@ body {
 }
 
 @media (max-width: 480px) {
+  /* KPI: 2 columns (very small screens) */
   .kpi-row {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
   }
 
   .kpi-card {
@@ -1045,6 +1098,27 @@ body {
 
   .kpi-value {
     font-size: 1.5rem;
+  }
+
+  /* Card body */
+  .card-body-custom {
+    padding: 16px;
+  }
+
+  /* Table: smaller text */
+  .table-custom tbody td {
+    font-size: 0.8rem;
+    padding: 10px 12px;
+  }
+
+  .table-custom thead th {
+    font-size: 0.7rem;
+    padding: 8px 12px;
+  }
+
+  /* Demo step: smaller text */
+  .demo-step {
+    font-size: 0.8rem;
   }
 }
 
