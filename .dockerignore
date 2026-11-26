@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+
+# Tests and dev tooling (not needed in the image)
+tests/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local env
+.env
+.env.*
+
+# Git
+.git/
+.gitignore
+
+# Claude work artifacts
+.claude/
+
+# Docs
+*.md
+document-workflow-spec.md
+
+# OS
+.DS_Store
+Thumbs.db

@@ -265,7 +265,7 @@ tests/
 
 ## Deployment
 
-The project is deployed on [Railway](https://railway.app) as a single service that serves both the API and the web client from the same origin.
+The project is deployed on [Railway](https://railway.app) as a single Docker container that serves both the API and the web client from the same origin.
 
 ### Architecture
 
@@ -276,13 +276,13 @@ GitHub (main branch)
         ▼
   Railway CI/CD
         │
-        │  nixpacks build
+        │  docker build (Dockerfile)
         ▼
-  Python 3.12 container
+  Docker image (python:3.12-slim, ~120 MB)
         │
-        │  Procfile start command
+        │  docker run
         ▼
-  uvicorn app.main:app
+  uvicorn app.main:app --host 0.0.0.0 --port $PORT
         │
         ├──  /events, /workflows, /health  →  FastAPI routes
         └──  /*                            →  StaticFiles (client/)
@@ -290,12 +290,31 @@ GitHub (main branch)
 
 API and frontend run in the same process on the same port. No CORS configuration is required.
 
-### Files
+### Docker build — multi-stage
+
+The `Dockerfile` uses a two-stage build to keep the final image small and free of build tools:
+
+```
+Stage 1 — builder (python:3.12-slim + uv)
+  COPY pyproject.toml uv.lock
+  RUN uv sync --frozen --no-dev   # installs deps into .venv
+
+Stage 2 — runtime (python:3.12-slim only)
+  COPY .venv from builder         # no uv in final image
+  COPY app/ client/
+  CMD uvicorn app.main:app ...
+```
+
+Layer caching means dependency installation is skipped on rebuilds unless `pyproject.toml` or `uv.lock` change — only application code changes trigger a fast copy-only rebuild.
+
+### Deployment files
 
 | File | Purpose |
 |---|---|
-| `Procfile` | Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
-| `requirements.txt` | Production dependencies exported from `uv` (used by Nixpacks) |
+| `Dockerfile` | Two-stage build; runtime image with uv-installed deps |
+| `.dockerignore` | Excludes tests, caches, `.venv`, `.env`, docs from the image |
+| `Procfile` | Kept as fallback; not used when `Dockerfile` is present |
+| `requirements.txt` | Reference export from uv; not used by Docker build |
 | `app/main.py` | Mounts `client/` as `StaticFiles` at `/` after all API routes |
 
 ### Continuous Deployment
@@ -306,41 +325,53 @@ Railway is connected to the GitHub repository via the Railway GitHub App. Every 
 git push origin main
         │
         ▼
-  GitHub webhook  →  Railway detects new commit
+  GitHub webhook  →  Railway detects new commit on main
         │
         ▼
-  Nixpacks build
-    - detects requirements.txt + pyproject.toml
-    - installs Python 3.12
-    - pip install -r requirements.txt
+  docker build -f Dockerfile .
+    - Stage 1: uv sync (cached if lockfile unchanged)
+    - Stage 2: copy .venv + app/ + client/
         │
         ▼
-  Container starts
-    - Procfile: uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    - Railway injects $PORT automatically
+  docker run
+    - Railway injects $PORT (e.g. 8080)
+    - CMD: uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
         │
         ▼
   Zero-downtime swap  →  new container goes live
+  Previous container kept as rollback target in Railway dashboard
 ```
 
-No manual steps are required after merging to `main`. Railway keeps the previous deployment available as a rollback target in the dashboard.
+No manual steps are required after pushing to `main`.
+
+### Running locally with Docker
+
+```bash
+# Build
+docker build -t document-workflow .
+
+# Run (mimics Railway environment)
+docker run -p 8000:8000 -e PORT=8000 document-workflow
+```
+
+Open **http://localhost:8000**.
 
 ### Environment Variables
 
 | Variable | Set by | Description |
 |---|---|---|
-| `PORT` | Railway (automatic) | Port uvicorn binds to |
+| `PORT` | Railway (automatic) | Port uvicorn binds to; defaults to `8000` locally |
 
 No application secrets are required for the current in-memory configuration.
 
 ### Local vs Production
 
-| Aspect | Local | Railway |
-|---|---|---|
-| Start command | `uv run uvicorn app.main:app --reload` | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
-| Port | 8000 | Assigned by Railway (typically 8080) |
-| Hot reload | Yes (`--reload`) | No |
-| Storage | In-memory, reset on restart | In-memory, reset on each deploy |
+| Aspect | Local (uv) | Local (Docker) | Railway |
+|---|---|---|---|
+| Start command | `uv run uvicorn app.main:app --reload` | `docker run -p 8000:8000 -e PORT=8000 ...` | `Dockerfile` CMD |
+| Port | 8000 | 8000 | Assigned by Railway |
+| Hot reload | Yes | No | No |
+| Storage | In-memory, reset on restart | In-memory, reset on restart | In-memory, reset on each deploy |
 
 ---
 
